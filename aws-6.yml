@@ -161,7 +161,7 @@ Resources:
         BuildSpec: !Sub |
           version: 0.1
           phases:
-            prebuild:
+            pre_build:
               commands:
                 - echo Installing source NPM dependencies...
                 - npm install
@@ -169,7 +169,7 @@ Resources:
               commands:
                 - echo Build started on `date`
                 - npm run build
-            postbuild:
+            post_build:
               commands:
                 - aws s3 cp --recursive --acl public-read ./build s3://${coolReactBucket}/
                 - aws s3 cp --acl public-read --cache-control="max-age=0, no-cache, no-store, must-revalidate" ./build/service-worker.js s3://${coolReactBucket}/
