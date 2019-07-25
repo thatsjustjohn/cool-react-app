@@ -56,6 +56,184 @@ to\
 `- aws s3 cp --recursive --acl public-read ./build s3://${coolReactBucket}/
 `
 
+## yml 6
+1st Error:\
+Template format error: 2020-09-09 is not a supported value forAWSTemplateFormatVersion.
+change(~1)\
+`
+AWSTemplateFormatVersion: 2020-09-09
+`\
+to\
+`
+AWSTemplateFormatVersion: 2010-09-09
+`\
+
+2nd Error:\
+Template format error: Resource name cool-react-bucket is non alphanumeric.\
+change(~99)\
+`
+                Resource:
+                  - !GetAtt cool-react-bucket.Arn
+                  - Join ['', [!GetAtt cool-react-bucket.Arn, "/*"]]
+                  `\
+to\
+`
+                Resource:
+                  - !GetAtt coolReactBucket.Arn
+                  - Join ['', [!GetAtt coolReactBucket.Arn, "/*"]]
+`
+
+change(~173)\
+`
+              commands:
+                - aws s3 cp --recursive --acl public-read ./build s3://${cool-react-bucket}/
+                - aws s3 cp --acl public-read --cache-control="max-age=0, no-cache, no-store, must-revalidate" ./build/service-worker.js s3://${cool-react-bucket}/
+                - aws s3 cp --acl public-read --cache-control="max-age=0, no-cache, no-store, must-revalidate" ./build/index.html s3://${cool-react-bucket}/
+                - aws cloudfront create-invalidation --distribution-id ${Distribution} --paths /index.html /service-worker.js
+`
+to\
+`
+              commands:
+                - aws s3 cp --recursive --acl public-read ./build s3://${coolReactBucket}/
+                - aws s3 cp --acl public-read --cache-control="max-age=0, no-cache, no-store, must-revalidate" ./build/service-worker.js s3://${coolReactBucket}/
+                - aws s3 cp --acl public-read --cache-control="max-age=0, no-cache, no-store, must-revalidate" ./build/index.html s3://${coolReactBucket}/
+                - aws cloudfront create-invalidation --distribution-id ${Distribution} --paths /index.html /service-worker.js
+`
+change(~185)\
+`
+  cool-react-bucket:
+
+`\
+to\
+`
+  coolReactBucket:
+`
+
+change(~190)\
+`
+  Distribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          -
+            DomainName: !GetAtt cool-react-bucket.DomainName
+            Id: !Ref cool-react-bucket
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultRootObject: index.html
+        Enabled: true
+        DefaultCacheBehavior:
+          MinTTL: 86400
+          MaxTTL: 31536000
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: !Ref cool-react-bucket
+          ViewerProtocolPolicy: "redirect-to-http"
+`\
+to\
+`
+  Distribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          -
+            DomainName: !GetAtt coolReactBucket.DomainName
+            Id: !Ref coolReactBucket
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultRootObject: index.html
+        Enabled: true
+        DefaultCacheBehavior:
+          MinTTL: 86400
+          MaxTTL: 31536000
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: !Ref coolReactBucket
+          ViewerProtocolPolicy: "redirect-to-https"
+`
+3rd Error:\
+Invalid principal in policy: "SERVICE":"codepipeiine.amazonaws.com" (Service: AmazonIdentityManagement; Status Code: 400; Error Code: MalformedPolicyDocument; Request ID: 11d4775d-af1d-11e9-8fac-131c67873907)\
+Looking at this error looks like there is a typo in codepipeline "codepipeiine"
+change(~121)\
+`
+              Service:
+                - "codepipeiine.amazonaws.com"
+`\
+to
+`
+              Service:
+                - "codepipeline.amazonaws.com"
+`
+4th Error:\
+Resource Join ['', [!GetAtt coolReactBucket.Arn, "/*"]] must be in ARN format or "*". (Service: AmazonIdentityManagement; Status Code: 400; Error Code: MalformedPolicyDocument; Request ID: 8c0c019a-af1d-11e9-9d72-09fb8e484c69)
+Looks like another typo in the format needing that '!' 
+change(~99)\
+`
+                Resource:
+                  - !GetAtt coolReactBucket.Arn
+                  - Join ['', [!GetAtt coolReactBucket.Arn, "/*"]]
+`\
+to\
+`
+                Resource:
+                  - !GetAtt coolReactBucket.Arn
+                  - !Join ['', [!GetAtt coolReactBucket.Arn, "/*"]]
+`\
+
+5th Error:\
+Nothing is going into the buckets... lets look at the bucket access
+change(~82)\
+`
+                Effect: Deny
+`
+to\
+`
+                Effect: Allow
+
+`
+This didn't fix it, but these is a type noticed when looking at the s3 policy permissions
+change(~98)\
+`
+                  - "s3:PutObjectACL"
+`\
+to\
+`                  
+                  - "s3:PutObjectAcl"
+`
+We had a problem in the code build though it was completed... 
+[Container] 2019/07/25 21:42:57 Phase context status code: YAML_FILE_ERROR Message: Invalid buildspec phase name: POSTBUILD. Expecting: BUILD,INSTALL,POST_BUILD,PRE_BUILD 
+Upon inspecting the yml file\
+change(~164)\
+`
+           prebuild:
+              commands:
+                - echo Installing source NPM dependencies...
+                - npm install
+            build:
+              commands:
+                - echo Build started on `date`
+                - npm run build
+            postbuild:
+              commands:
+`\
+to\
+`
+           pre_build:
+              commands:
+                - echo Installing source NPM dependencies...
+                - npm install
+            build:
+              commands:
+                - echo Build started on `date`
+                - npm run build
+            post_build:
+              commands:
+`\
+
+
+
 
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
