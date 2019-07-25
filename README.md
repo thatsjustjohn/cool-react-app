@@ -1,3 +1,63 @@
+## yml 5
+1st Error
+Property validation failure: [Value of property {/DistributionConfig/Origins} does not match type {Array}]
+change (~195)
+        `Origins:
+            DomainName: !GetAtt coolReactBucket.DomainName`
+to this
+       `Origins:
+          -
+            DomainName: !GetAtt coolReactBucket.DomainName`
+
+2nd Error 
+Pipeline should start with a stage that only contains source actions (Service: AWSCodePipeline; Status Code: 400; Error Code: InvalidStructureException; Request ID: 9f41dab8-7024-45c2-b267-1e881f376ce1)
+Codepipline - stage - action that isn't 'source'
+change (~32)
+  `Stages:
+        -
+          Name: Source
+          Actions:
+            -
+              Name: SourceAction
+              ActionTypeId:
+                Category: **Build**
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1`
+to 
+  `Stages:
+        -
+          Name: Source
+          Actions:
+            -
+              Name: SourceAction
+              ActionTypeId:
+                Category: **Source**
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1`
+
+3rd Error:
+CREATE_COMPLETE.  But there are no fun things in my buckets!
+we need to address the pipeline bucket
+change(~135)
+`                  - "s3:Object"
+`
+to
+`                  - "s3:PutObject"
+`
+
+4th Error:
+We have the zip in pipeline bucket but nothing in the cool react app
+change(~174)
+`- aws s3 cp --acl public-read ./build s3://${coolReactBucket}/
+`
+to
+`- aws s3 cp --recursive --acl public-read ./build s3://${coolReactBucket}/
+`
+
+
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
